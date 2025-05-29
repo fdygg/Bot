@@ -1,208 +1,108 @@
 from pydantic import BaseModel, Field, validator
-from typing import Optional, List, Dict
+from typing import Optional, Dict
 from datetime import datetime
 from enum import Enum
-
-class CurrencyType(str, Enum):
-    WL = "wl"         # World Lock
-    DL = "dl"         # Diamond Lock
-    BGL = "bgl"       # Blue Gem Lock
-    IDR = "idr"       # Indonesian Rupiah
-
-class RateType(str, Enum):
-    BUY = "buy"       # Buying rate (user sells to bot)
-    SELL = "sell"     # Selling rate (user buys from bot)
-    MIDDLE = "middle" # Middle rate (for calculations)
+from .balance import CurrencyType
 
 class ConversionRate(BaseModel):
-    id: Optional[str] = None
-    from_currency: CurrencyType
-    to_currency: CurrencyType
-    rate_type: RateType
-    rate: float = Field(..., gt=0)
-    effective_from: datetime = Field(
+    currency: CurrencyType = Field(..., description="Currency type (WL/DL/BGL)")
+    rate_rupiah: int = Field(..., gt=0, description="Rate in Rupiah")
+    min_amount: int = Field(1, ge=1, description="Minimum amount for conversion")
+    max_amount: int = Field(..., gt=0, description="Maximum amount for conversion")
+    is_active: bool = Field(default=True)
+    updated_at: datetime = Field(
         default_factory=lambda: datetime.strptime(
-            "2025-05-29 07:46:10",
+            "2025-05-29 15:43:09",
             "%Y-%m-%d %H:%M:%S"
         )
     )
-    effective_until: Optional[datetime] = None
-    created_by: str = Field(default="fdygg")
-    created_at: datetime = Field(
-        default_factory=lambda: datetime.strptime(
-            "2025-05-29 07:46:10",
-            "%Y-%m-%d %H:%M:%S"
-        )
-    )
-    updated_at: Optional[datetime] = None
-    metadata: Dict = Field(default_factory=dict)
+    updated_by: str = Field(default="fdygg")
 
-    @validator('to_currency')
-    def validate_currency_pair(cls, v, values):
-        if 'from_currency' in values:
-            if v == values['from_currency']:
-                raise ValueError("From and to currency must be different")
+    @validator('currency')
+    def validate_currency(cls, v):
+        if v == CurrencyType.RUPIAH:
+            raise ValueError("Cannot set conversion rate for Rupiah")
         return v
 
     class Config:
         json_schema_extra = {
             "example": {
-                "id": "rate_123456",
-                "from_currency": "wl",
-                "to_currency": "idr",
-                "rate_type": "sell",
-                "rate": 1100.0,
-                "effective_from": "2025-05-29 07:46:10",
-                "created_by": "fdygg",
-                "created_at": "2025-05-29 07:46:10",
-                "metadata": {
-                    "source": "manual",
-                    "market_condition": "stable"
-                }
+                "currency": "wl",
+                "rate_rupiah": 5000,
+                "min_amount": 1,
+                "max_amount": 10000,
+                "is_active": True,
+                "updated_at": "2025-05-29 15:43:09",
+                "updated_by": "fdygg"
             }
         }
 
 class ConversionRequest(BaseModel):
+    user_id: str
+    user_type: str  # Harus "discord"
     from_currency: CurrencyType
     to_currency: CurrencyType
-    amount: float = Field(..., gt=0)
-    rate_type: RateType = Field(default=RateType.MIDDLE)
+    amount: int = Field(..., gt=0)
+
+    @validator('user_type')
+    def validate_user_type(cls, v):
+        if v != "discord":
+            raise ValueError("Only Discord users can perform currency conversion")
+        return v
+
+    @validator('to_currency')
+    def validate_to_currency(cls, v, values):
+        from_curr = values.get('from_currency')
+        if from_curr == v:
+            raise ValueError("Cannot convert to same currency")
+        if from_curr == CurrencyType.RUPIAH:
+            raise ValueError("Cannot convert from Rupiah")
+        if v != CurrencyType.RUPIAH:
+            raise ValueError("Can only convert to Rupiah")
+        return v
 
     class Config:
         json_schema_extra = {
             "example": {
+                "user_id": "usr_123456",
+                "user_type": "discord",
                 "from_currency": "wl",
                 "to_currency": "idr",
-                "amount": 100,
-                "rate_type": "sell"
+                "amount": 1000
             }
         }
 
 class ConversionResponse(BaseModel):
-    request: ConversionRequest
-    result: float
-    rate_used: float
+    conversion_id: str
+    user_id: str
+    from_currency: CurrencyType
+    to_currency: CurrencyType
+    amount: int
+    converted_amount: int
+    rate_used: int
     timestamp: datetime = Field(
         default_factory=lambda: datetime.strptime(
-            "2025-05-29 07:46:10",
+            "2025-05-29 15:43:09",
             "%Y-%m-%d %H:%M:%S"
         )
     )
-    
-    class Config:
-        json_schema_extra = {
-            "example": {
-                "request": {
-                    "from_currency": "wl",
-                    "to_currency": "idr",
-                    "amount": 100,
-                    "rate_type": "sell"
-                },
-                "result": 110000.0,
-                "rate_used": 1100.0,
-                "timestamp": "2025-05-29 07:46:10"
-            }
-        }
-
-class RateUpdateRequest(BaseModel):
-    currency_pairs: List[Dict[str, CurrencyType]] = Field(
-        ...,
-        description="List of currency pairs to update"
-    )
-    rates: Dict[RateType, float] = Field(
-        ...,
-        description="New rates for each rate type"
-    )
-    effective_from: Optional[datetime] = Field(
-        default_factory=lambda: datetime.strptime(
-            "2025-05-29 07:46:10",
-            "%Y-%m-%d %H:%M:%S"
-        )
-    )
-    reason: Optional[str] = None
+    status: str = Field(default="success")
     metadata: Dict = Field(default_factory=dict)
 
     class Config:
         json_schema_extra = {
             "example": {
-                "currency_pairs": [
-                    {
-                        "from_currency": "wl",
-                        "to_currency": "idr"
-                    }
-                ],
-                "rates": {
-                    "buy": 1000.0,
-                    "sell": 1100.0,
-                    "middle": 1050.0
-                },
-                "effective_from": "2025-05-29 07:46:10",
-                "reason": "Market price adjustment",
+                "conversion_id": "conv_123456",
+                "user_id": "usr_123456",
+                "from_currency": "wl",
+                "to_currency": "idr",
+                "amount": 1000,
+                "converted_amount": 5000000,
+                "rate_used": 5000,
+                "timestamp": "2025-05-29 15:43:09",
+                "status": "success",
                 "metadata": {
-                    "source": "manual",
-                    "market_condition": "stable"
+                    "growid": "PLAYER123"
                 }
-            }
-        }
-
-class RateHistory(BaseModel):
-    rates: List[ConversionRate]
-    total: int
-    page: int = Field(1, ge=1)
-    page_size: int = Field(10, ge=1, le=100)
-    
-    class Config:
-        json_schema_extra = {
-            "example": {
-                "rates": [
-                    {
-                        "id": "rate_123456",
-                        "from_currency": "wl",
-                        "to_currency": "idr",
-                        "rate_type": "sell",
-                        "rate": 1100.0,
-                        "effective_from": "2025-05-29 07:46:10",
-                        "created_by": "fdygg",
-                        "created_at": "2025-05-29 07:46:10",
-                        "metadata": {
-                            "source": "manual",
-                            "market_condition": "stable"
-                        }
-                    }
-                ],
-                "total": 1,
-                "page": 1,
-                "page_size": 10
-            }
-        }
-
-class RateAlert(BaseModel):
-    id: Optional[str] = None
-    currency_pair: Dict[str, CurrencyType]
-    condition: str = Field(..., description="Price condition to trigger alert")
-    threshold: float = Field(..., gt=0)
-    status: str = Field(default="active")
-    created_by: str = Field(default="fdygg")
-    created_at: datetime = Field(
-        default_factory=lambda: datetime.strptime(
-            "2025-05-29 07:46:10",
-            "%Y-%m-%d %H:%M:%S"
-        )
-    )
-    last_triggered: Optional[datetime] = None
-    
-    class Config:
-        json_schema_extra = {
-            "example": {
-                "id": "alert_123456",
-                "currency_pair": {
-                    "from_currency": "wl",
-                    "to_currency": "idr"
-                },
-                "condition": "above",
-                "threshold": 1200.0,
-                "status": "active",
-                "created_by": "fdygg",
-                "created_at": "2025-05-29 07:46:10"
             }
         }
