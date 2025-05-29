@@ -1,16 +1,18 @@
 from datetime import datetime
 from typing import Dict, List, Optional, Any
 from enum import Enum
+from pydantic import BaseModel, Field
 
 # Base configuration
-CURRENT_TIMESTAMP = "2025-05-28 15:40:52"
+CURRENT_TIMESTAMP = "2025-05-29 15:55:50"
 CURRENT_USER = "fdygg"
 
 # Import all models
 from .auth import (
     LoginRequest,
     LoginResponse,
-    TokenResponse,
+    Token,
+    TokenData,
     AdminLoginRequest,
     RefreshTokenRequest,
     PasswordResetRequest,
@@ -24,63 +26,87 @@ from .user import (
     UserUpdate,
     UserResponse,
     UserRole,
-    UserStatus
+    UserStatus,
+    UserType
+)
+
+from .balance import (
+    Balance,
+    BalanceResponse,
+    BalanceUpdateRequest,
+    BalanceHistoryResponse,
+    Transaction,
+    TransactionType,
+    TransactionStatus,
+    CurrencyType
+)
+
+from .conversion import (
+    ConversionRate,
+    ConversionRequest,
+    ConversionResponse
 )
 
 from .product import (
+    ProductBase,
     ProductCreate,
     ProductUpdate,
     ProductResponse,
-    ProductFilter
+    ProductType,
+    ProductStatus
 )
 
 from .stock import (
-    StockResponse,
     StockItem,
     StockAddRequest,
     StockReduceRequest,
     StockHistoryResponse,
-    StockFilter
+    StockFilter,
+    StockStatus,
+    PriceInfo
 )
 
 from .transaction import (
-    TransactionResponse,
     TransactionCreate,
+    TransactionResponse,
     TransactionFilter,
     TransactionType,
     TransactionStatus
 )
 
-from .balance import (
-    BalanceResponse,
-    BalanceUpdateRequest,
-    BalanceHistoryResponse,
-    BalanceFilter,
-    BalanceType
-)
-
-from .dashboard import (
-    SystemInfo,
-    UserActivity,
-    SystemStatus,
-    UserStats,
-    StockAlert,
-    DashboardStats,
-    UserDashboard,
-    DashboardSettings
+from .blacklist import (
+    BlacklistEntry,
+    BlacklistType,
+    BlacklistReason,
+    BlacklistStatus,
+    FraudDetectionRule
 )
 
 from .admin import (
+    AdminRole,
+    AdminPermission,
+    Platform,
     AdminStats,
+    AdminActivity,
     AdminDashboard,
-    SystemInfo,
-    UserActivity
+    AdminSettings
+)
+
+from .settings import (
+    Setting,
+    SettingCategory,
+    FeatureFlag
 )
 
 # Common base models
 class BaseTimestampModel(BaseModel):
     """Base model with timestamp"""
-    created_at: datetime = Field(default_factory=lambda: datetime.strptime(CURRENT_TIMESTAMP, "%Y-%m-%d %H:%M:%S"))
+    created_at: datetime = Field(
+        default_factory=lambda: datetime.strptime(
+            CURRENT_TIMESTAMP,
+            "%Y-%m-%d %H:%M:%S"
+        )
+    )
     updated_at: Optional[datetime] = None
     created_by: str = CURRENT_USER
     updated_by: Optional[str] = None
@@ -110,8 +136,8 @@ class PaginatedResponse(BaseResponse):
     """Paginated response model"""
     data: List[Any]
     total: int
-    page: int
-    limit: int
+    page: int = Field(1, ge=1)
+    limit: int = Field(10, ge=1, le=100)
     has_next: bool
     has_prev: bool
 
@@ -120,12 +146,16 @@ class BaseDateRangeFilter(BaseModel):
     """Base date range filter"""
     start_date: Optional[datetime] = None
     end_date: Optional[datetime] = Field(
-        default_factory=lambda: datetime.strptime(CURRENT_TIMESTAMP, "%Y-%m-%d %H:%M:%S")
+        default_factory=lambda: datetime.strptime(
+            CURRENT_TIMESTAMP,
+            "%Y-%m-%d %H:%M:%S"
+        )
     )
 
 class BaseUserFilter(BaseModel):
     """Base user filter"""
     user_id: Optional[str] = None
+    user_type: Optional[str] = None  # discord/web
     created_by: Optional[str] = None
     updated_by: Optional[str] = None
 
@@ -139,34 +169,43 @@ class BasePaginationParams(BaseModel):
 # Export all models
 __all__ = [
     # Auth models
-    "LoginRequest", "LoginResponse", "TokenResponse", "AdminLoginRequest",
-    "RefreshTokenRequest", "PasswordResetRequest", "TwoFactorSetupResponse",
-    "TwoFactorVerifyRequest",
+    "LoginRequest", "LoginResponse", "Token", "TokenData",
+    "AdminLoginRequest", "RefreshTokenRequest", "PasswordResetRequest",
+    "TwoFactorSetupResponse", "TwoFactorVerifyRequest",
     
     # User models
-    "UserBase", "UserCreate", "UserUpdate", "UserResponse", "UserRole", "UserStatus",
+    "UserBase", "UserCreate", "UserUpdate", "UserResponse",
+    "UserRole", "UserStatus", "UserType",
+    
+    # Balance & Currency models
+    "Balance", "BalanceResponse", "BalanceUpdateRequest",
+    "BalanceHistoryResponse", "Transaction", "TransactionType",
+    "TransactionStatus", "CurrencyType",
+    
+    # Conversion models
+    "ConversionRate", "ConversionRequest", "ConversionResponse",
     
     # Product models
-    "ProductCreate", "ProductUpdate", "ProductResponse", "ProductFilter",
+    "ProductBase", "ProductCreate", "ProductUpdate",
+    "ProductResponse", "ProductType", "ProductStatus",
     
     # Stock models
-    "StockResponse", "StockItem", "StockAddRequest", "StockReduceRequest",
-    "StockHistoryResponse", "StockFilter",
+    "StockItem", "StockAddRequest", "StockReduceRequest",
+    "StockHistoryResponse", "StockFilter", "StockStatus", "PriceInfo",
     
     # Transaction models
-    "TransactionResponse", "TransactionCreate", "TransactionFilter",
-    "TransactionType", "TransactionStatus",
+    "TransactionCreate", "TransactionResponse", "TransactionFilter",
     
-    # Balance models
-    "BalanceResponse", "BalanceUpdateRequest", "BalanceHistoryResponse",
-    "BalanceFilter", "BalanceType",
-    
-    # Dashboard models
-    "SystemInfo", "UserActivity", "SystemStatus", "UserStats",
-    "StockAlert", "DashboardStats", "UserDashboard", "DashboardSettings",
+    # Blacklist models
+    "BlacklistEntry", "BlacklistType", "BlacklistReason",
+    "BlacklistStatus", "FraudDetectionRule",
     
     # Admin models
-    "AdminStats", "AdminDashboard",
+    "AdminRole", "AdminPermission", "Platform", "AdminStats",
+    "AdminActivity", "AdminDashboard", "AdminSettings",
+    
+    # Settings models
+    "Setting", "SettingCategory", "FeatureFlag",
     
     # Base models
     "BaseTimestampModel", "BaseStatusModel", "BaseResponse",
