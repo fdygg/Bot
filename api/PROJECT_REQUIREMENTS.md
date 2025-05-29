@@ -34,107 +34,141 @@ CREATE TABLE conversion_rates (
     updated_by TEXT
 )
 
-# Struktur Folder Inti API
-Last Updated: 2025-05-29 07:37:07 UTC
-Author: fdygg
+# Models Documentation
 
-## Urutan Prioritas Folder (Dari Terpenting)
+## Core Features & Dependencies
 
-### 1. models/ - HIGHEST PRIORITY
-Folder ini adalah INTI dari struktur data aplikasi.
-```
+1. **Multi-Platform Support**
+   - Discord Integration
+   - Web Platform
+   - Platform-specific validations
+   - Shared core functionality
+
+2. **Currency System**
+   - World Lock (WL)
+   - Diamond Lock (DL)
+   - Blue Gem Lock (BGL)
+   - Indonesian Rupiah (IDR)
+   - Conversion system (Discord-only)
+
+3. **User Management**
+   - Discord users (with Growtopia ID)
+   - Web users
+   - Role-based access
+   - Admin hierarchy
+
+4. **Security**
+   - Blacklist system
+   - Fraud detection
+   - Platform-specific restrictions
+   - Admin activity logging
+
+## Key Models & Their Relationships
+
+1. **User-Related**
+   - `user.py`: Base user management
+   - `auth.py`: Authentication & authorization
+   - `admin.py`: Administrative controls
+   - `blacklist.py`: User restrictions
+
+2. **Transaction-Related**
+   - `balance.py`: Currency balances
+   - `transaction.py`: Transaction records
+   - `conversion.py`: Currency conversion
+
+3. **Product-Related**
+   - `product.py`: Product definitions
+   - `stock.py`: Inventory tracking
+   
+4. **System-Related**
+   - `settings.py`: System configuration
+   - `__init__.py`: Base models & exports
+
+## Common Patterns
+
+1. **Base Models**
+   - `BaseTimestampModel`: Created/updated tracking
+   - `BaseStatusModel`: Status management
+   - `BaseResponse`: Standard response format
+   - `BaseDateRangeFilter`: Date filtering
+   - `BasePaginationParams`: List pagination
+
+2. **Standard Fields**
+   - `created_at`/`updated_at`: Timestamps
+   - `created_by`/`updated_by`: User tracking
+   - `metadata`: Flexible extra data
+   - `is_active`: Status tracking
+
+3. **Validation Rules**
+   - Platform-specific restrictions
+   - Currency access controls
+   - Role-based permissions
+   - Data integrity checks
+
+## Best Practices
+
+1. **Model Creation**
+   - Always inherit from appropriate base models
+   - Include Config class with examples
+   - Add proper field validations
+   - Document complex validations
+
+2. **Platform Integration**
+   - Check user_type for platform-specific logic
+   - Validate Growtopia ID for Discord users
+   - Restrict currency access appropriately
+   - Use platform-specific metadata
+
+3. **Currency Handling**
+   - Always use CurrencyType enum
+   - Implement proper conversion logic
+   - Validate currency access rights
+   - Track all currency changes
+
+4. **Security Considerations**
+   - Log all admin actions
+   - Implement fraud detection
+   - Maintain audit trails
+   - Use proper permission checks
+
+## Versioning & Updates
+
+1. **Version Control**
+   - Current Version: 1.0.0
+   - API Version: v1
+   - Last Updated: 2025-05-29 15:55:50
+   - Updated By: fdygg
+
+2. **Update Process**
+   - Update timestamps
+   - Increment version numbers
+   - Update documentation
+   - Test all integrations
+
+## Notes for Future Development
+
+1. **New Features**
+   - Follow existing patterns
+   - Update __init__.py exports
+   - Add appropriate documentation
+   - Include example configurations
+
+2. **Modifications**
+   - Maintain backward compatibility
+   - Update all affected models
+   - Follow naming conventions
+   - Keep documentation current
+## Folder Structure
 models/
-├── __init__.py
-├── balance.py        # WL, DL, BGL, Rupiah management
-├── conversion.py     # Rate conversion handling
-├── user.py          # Discord & non-Discord users
-├── transaction.py   # Conversion & balance transactions
-├── product.py       # PPOB products
-└── auth.py          # Authentication models
-```
-**Alasan**: Semua folder lain bergantung pada definisi model.
-
-### 2. service/ - HIGH PRIORITY
-Berisi logika bisnis dan operasi data.
-```
-service/
-├── __init__.py
-├── balance_service.py     # Balance management
-├── conversion_service.py  # Conversion logic
-├── auth_service.py       # Authentication
-├── user_service.py       # User management
-└── transaction_service.py # Transaction processing
-```
-**Alasan**: Menghubungkan models dengan routes.
-
-### 3. routes/ - MEDIUM PRIORITY
-Mendefinisikan endpoint API.
-```
-routes/
-├── __init__.py
-├── balance.py      # Balance endpoints
-├── conversion.py   # Conversion endpoints
-├── auth.py        # Auth endpoints
-├── user.py        # User endpoints
-└── transaction.py # Transaction endpoints
-```
-**Alasan**: Menggunakan service untuk handle requests.
-
-### 4. middleware/ - NORMAL PRIORITY
-Menangani proses request/response.
-```
-middleware/
-├── __init__.py         # Middleware initialization
-├── auth.py            # Token validation
-├── rate_limiting.py   # Request limitations
-├── error_handling.py  # Error handlers
-└── logging.py         # System logging
-```
-**Alasan**: Menambah layer keamanan dan monitoring.
-
-## File Pendukung (Menyesuaikan dengan Folder Inti)
-
-```
-api/
-├── server.py       # Server configuration
-├── config.py       # Global configurations
-├── dependencies.py # Dependency injection
-└── utils/         # Helper functions
-```
-
-## Aturan Pengembangan
-
-1. **Selalu mulai dari models/**
-   - Buat/update model terlebih dahulu
-   - Test relasi antar model
-   - Validasi struktur data
-
-2. **Lanjut ke service/**
-   - Implementasi logika bisnis
-   - Gunakan models yang sudah dibuat
-   - Pastikan error handling proper
-
-3. **Kemudian routes/**
-   - Buat endpoint yang menggunakan service
-   - Dokumentasikan API dengan baik
-   - Test endpoint secara menyeluruh
-
-4. **Terakhir middleware/**
-   - Implementasi security features
-   - Setup logging dan monitoring
-   - Atur rate limiting
-
-## Catatan Penting
-
-- Setiap perubahan di models/ harus diikuti update di service/
-- Service baru memerlukan route baru
-- Middleware bisa dikembangkan paralel setelah 3 folder utama siap
-- Dokumentasi harus diupdate setiap ada perubahan struktur
-- Testing harus dilakukan di setiap level (model, service, route)
-
-## Version Control
-
-- Development Date: 2025-05-29
-- Last Updated: 07:37:07 UTC
-- Author: fdygg
-- Version: 1.0.0
+        ├── init.py # Model exports and base 
+        ├── admin.py # Admin panel 
+        ├── auth.py # Authentication 
+        ├── balance.py # Balance & currency 
+        ├── blacklist.py # Blacklist & fraud detection 
+        ├── conversion.py # Currency conversion 
+        ├── product.py # Product catalog 
+        ├── settings.py # System settings 
+        ├── stock.py # Inventory management 
+        ├── transaction.py # Transaction handling 
+        ├──  notifications.py 
+        └── user.py # User management
